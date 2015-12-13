@@ -1,4 +1,4 @@
- function [precision, recall, Fscore] = String_solution(data,labels)
+ function [precision, recall, Fscore, costs] = String_solution(data,labels)
 % Implements a regression model
 % Inputs: data - a 1000 by 25 matrix containing the data from 1000 patients.
 %         labels - a 1 by 1000 vector containting the survival times for the patients
@@ -9,15 +9,26 @@ len = 1000;
 precision = zeros(1,len);
 recall = zeros(1,len);
 Fscore = zeros(1,len);
+
 matrix = [];
+full_matrix = [];
+patient_ids = [];
+oracle_label = [];
+
 belda = 1;
 cost = 0;
+costs = [];
 
 vector = repmat(-100,1,130);
 
+
+prelen = 100;
+matrix(1:prelen, :) = data(1:prelen, :);
+
 for i=1:len
+    t = prelen + i;
     matrix = [matrix; vector];
-    [i_s, j_s] = get_matrix_score(matrix, belda);
+    [i_s, j_s] = get_matrix_score(matrix, data, belda, 5, labels);
     
     for k=1:belda
         current_i = i_s(k);
@@ -37,10 +48,12 @@ for i=1:len
         end
     end
     
-%     tree = fitctree(matrix, labels(:,1:i));
-     B = TreeBagger(3, matrix, labels(:,1:i));
+    costs = [costs cost];
+    
+     tree = fitctree(matrix, labels(:,1:t));
+%      B = TreeBagger(3, matrix, labels(:,1:i));
 %      SVM = fitcsvm(matrix, labels(:,1:i));
-    L = str2double(B.predict(data));
+    L = tree.predict(data);
     [indexs, ones_in_L] = find(L==1);
     ones_in_labels = labels(indexs);
     precision(i) = sum(ones_in_labels) / sum(ones_in_L);
